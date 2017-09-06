@@ -6,6 +6,8 @@
 
 #include "ble_packet.h"
 
+#include <string.h>
+
 namespace gr
 {
 namespace ble

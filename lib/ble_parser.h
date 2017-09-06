@@ -5,16 +5,26 @@
 
 #include "ble_packet.h"
 
+#include <stdint.h>
 #include <boost/circular_buffer.hpp>
 
 namespace gr
 {
 namespace ble
 {
+  
 
 class BLEParser
 {
 private:
+  static size_t accessAddrLen;
+  static size_t pduHeadLen;
+  static size_t crcLen;
+
+  static uint8_t preamble;
+  static uint32_t accessAddr; 
+
+  boost::circular_buffer<uint8_t> d_cbuffer;
   enum States
   {
     IDLE,

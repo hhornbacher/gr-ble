@@ -3,6 +3,8 @@
 #ifndef INCLUDED_BLE_BLEPACKET_H
 #define INCLUDED_BLE_BLEPACKET_H
 
+#include <stdint.h>
+
 namespace gr
 {
 namespace ble
@@ -35,7 +37,7 @@ class BLEPacket
     bool isValid();
 
     void setPDUData();
-}
+};
 
 } // namespace ble
 } // namespace gr
