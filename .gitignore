@@ -147,3 +147,5 @@ ENV/
 /site
 
 # End of https://www.gitignore.io/api/c++,cmake,python
+
+*.raw
