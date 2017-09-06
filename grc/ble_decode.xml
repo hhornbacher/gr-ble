@@ -4,7 +4,13 @@
   <key>ble_decode</key>
   <category>[ble]</category>
   <import>import ble</import>
-  <make>ble.decode()</make>
+  <make>ble.decode($channel)</make>
+	<callback>set_channel($channel)</callback>
+  <param>
+    <name>Channel</name>
+    <key>channel</key>
+    <type>int</type>
+  </param>
   <sink>
     <name>in</name>
     <type>byte</type>

@@ -3,7 +3,7 @@
 ##################################################
 # GNU Radio Python Flow Graph
 # Title: Ble Decode
-# Generated: Wed Sep  6 12:32:16 2017
+# Generated: Wed Sep  6 15:40:38 2017
 ##################################################
 
 if __name__ == '__main__':
@@ -68,14 +68,16 @@ class ble_decode(gr.top_block, Qt.QWidget):
         ##################################################
         self.transition_width = transition_width = 300e3
         self.samp_rate = samp_rate = int(4e6)
-        self.freq_selector = freq_selector = 2480000000
+        self.freq_selector = freq_selector = 2402000000
         self.cutoff_freq = cutoff_freq = 850e3
+        self.channels_map = channels_map = { 2402000000:37, 2426000000:38, 2480000000:39}
         self.squelch = squelch = -70
         self.signal_bandwidth = signal_bandwidth = int(1e6)
         self.samp_per_sym = samp_per_sym = 4
         self.lowpass_filter = lowpass_filter = firdes.low_pass(1, samp_rate, cutoff_freq, transition_width, firdes.WIN_HAMMING, 6.76)
         self.label_freq = label_freq = freq_selector/1000000
         self.freq_offset = freq_offset = int(1e6)
+        self.current_channel = current_channel = channels_map[freq_selector]
         self.channels = channels = { "Ch37": 2402000000, "Ch38": 2426000000, "Ch39": 2480000000}
 
         ##################################################
@@ -189,7 +191,7 @@ class ble_decode(gr.top_block, Qt.QWidget):
         self.blocks_unpacked_to_packed_xx_0 = blocks.unpacked_to_packed_bb(1, gr.GR_LSB_FIRST)
         self.blocks_file_sink_0 = blocks.file_sink(gr.sizeof_char*1, 'gfsk_out.raw', False)
         self.blocks_file_sink_0.set_unbuffered(False)
-        self.ble_decode_0 = ble.decode()
+        self.ble_decode_0 = ble.decode(current_channel)
         self.analog_simple_squelch_cc_0_0 = analog.simple_squelch_cc(squelch, 0.1)
 
         ##################################################
@@ -231,6 +233,7 @@ class ble_decode(gr.top_block, Qt.QWidget):
     def set_freq_selector(self, freq_selector):
         self.freq_selector = freq_selector
         self._freq_selector_callback(self.freq_selector)
+        self.set_current_channel(self.channels_map[self.freq_selector])
         self.osmosdr_source_0.set_center_freq(self.freq_selector-self.freq_offset, 0)
         self.set_label_freq(self._label_freq_formatter(self.freq_selector/1000000))
         self.fosphor_qt_sink_c_0.set_frequency_range(self.freq_selector, self.samp_rate)
@@ -241,6 +244,13 @@ class ble_decode(gr.top_block, Qt.QWidget):
     def set_cutoff_freq(self, cutoff_freq):
         self.cutoff_freq = cutoff_freq
         self.set_lowpass_filter(firdes.low_pass(1, self.samp_rate, self.cutoff_freq, self.transition_width, firdes.WIN_HAMMING, 6.76))
+
+    def get_channels_map(self):
+        return self.channels_map
+
+    def set_channels_map(self, channels_map):
+        self.channels_map = channels_map
+        self.set_current_channel(self.channels_map[self.freq_selector])
 
     def get_squelch(self):
         return self.squelch
@@ -282,6 +292,13 @@ class ble_decode(gr.top_block, Qt.QWidget):
         self.freq_offset = freq_offset
         self.osmosdr_source_0.set_center_freq(self.freq_selector-self.freq_offset, 0)
         self.freq_xlating_fir_filter_xxx_0.set_center_freq(self.freq_offset)
+
+    def get_current_channel(self):
+        return self.current_channel
+
+    def set_current_channel(self, current_channel):
+        self.current_channel = current_channel
+        self.ble_decode_0.set_channel(current_channel)
 
     def get_channels(self):
         return self.channels

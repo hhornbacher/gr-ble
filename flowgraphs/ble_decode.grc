@@ -120,6 +120,60 @@
     </param>
     <param>
       <key>_coordinate</key>
+      <value>(1400, 380)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>channels_map</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>{ 2402000000:37, 2426000000:38, 2480000000:39}</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
+      <value>(1440, 452)</value>
+    </param>
+    <param>
+      <key>_rotation</key>
+      <value>0</value>
+    </param>
+    <param>
+      <key>id</key>
+      <value>current_channel</value>
+    </param>
+    <param>
+      <key>value</key>
+      <value>channels_map[freq_selector]</value>
+    </param>
+  </block>
+  <block>
+    <key>variable</key>
+    <param>
+      <key>comment</key>
+      <value></value>
+    </param>
+    <param>
+      <key>_enabled</key>
+      <value>True</value>
+    </param>
+    <param>
+      <key>_coordinate</key>
       <value>(704, 468)</value>
     </param>
     <param>
@@ -147,7 +201,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(8, 320)</value>
+      <value>(8, 364)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -170,7 +224,7 @@
     </param>
     <param>
       <key>value</key>
-      <value>2480000000</value>
+      <value>2402000000</value>
     </param>
     <param>
       <key>_enabled</key>
@@ -397,7 +451,7 @@
     </param>
     <param>
       <key>_coordinate</key>
-      <value>(8, 396)</value>
+      <value>(8, 428)</value>
     </param>
     <param>
       <key>_rotation</key>
@@ -554,6 +608,10 @@
     <param>
       <key>alias</key>
       <value></value>
+    </param>
+    <param>
+      <key>channel</key>
+      <value>current_channel</value>
     </param>
     <param>
       <key>comment</key>
