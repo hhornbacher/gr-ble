@@ -4,6 +4,8 @@
         "cmath": "cpp",
         "chrono": "cpp",
         "algorithm": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "array": "cpp",
+        "slist": "cpp"
     }
 }

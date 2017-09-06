@@ -25,7 +25,9 @@ include(GrPlatform) #define LIB_SUFFIX
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIRS})
 list(APPEND ble_sources
-    decode_impl.cc )
+    decode_impl.cc
+    ble_parser.cc
+    ble_packet.cc )
 
 set(ble_sources "${ble_sources}" PARENT_SCOPE)
 if(NOT ble_sources)
