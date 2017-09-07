@@ -13,28 +13,17 @@ namespace gr
 {
 namespace ble
 {
-static void printhex(uint8_t *ptr, int count)
-{
-    for (int i = 0; i < (count / 16) + 1; i++)
-    {
-        for (int j = 0; j < 16 && (i * 16) + j < count; j++)
-        {
-            printf("%02x ", ptr[(i * 16) + j]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-}
 
 /*
        * The private constructor
        */
-BLEPacket::BLEPacket(uint8_t *header, int chan) : channel((uint8_t)chan)
+BLEPacket::BLEPacket(uint8_t *header, int chan) : channel((uint8_t)chan), valid(false)
 {
     pduHeader = data;
-    pduData = &data[2];
-    dewhitening(header, 2, pduHeader);
-    memccpy(pduHeaderRaw, header, 2, 2);
+    pduData = &data[BLE_PDU_HEAD_LEN];
+    dewhitening(header, BLE_PDU_HEAD_LEN, pduHeader);
+    memccpy(pduHeaderRaw, header, BLE_PDU_HEAD_LEN, BLE_PDU_HEAD_LEN);
+    crc = &data[getPDUDataLength() - 1];
 }
 
 /*
@@ -77,42 +66,42 @@ void BLEPacket::dewhitening(uint8_t *data, int length, uint8_t *out)
 }
 
 // Taken from: https://dmitry.gr/index.php?r=05.Projects&proj=11.%20Bluetooth%20LE%20fakery
-bool BLEPacket::crc()
+bool BLEPacket::checkCRC()
 {
-    uint8_t dst[] = {0x55, 0x55, 0x55};
-    uint8_t len = getPDUDataLength() - 3 + 2;
+    uint8_t _crc[] = {0x55, 0x55, 0x55};
+    uint8_t len = getPDUDataLength() - BLE_CRC_LEN + BLE_PDU_HEAD_LEN;
 
     uint8_t v, t, d;
 
-    uint8_t *dataIt = data;
+    uint8_t *it = data;
     while (len--)
     {
-        d = *dataIt++;
+        d = *it++;
         for (v = 0; v < 8; v++, d >>= 1)
         {
 
-            t = dst[0] >> 7;
-            dst[0] <<= 1;
-            if (dst[1] & 0x80)
-                dst[0] |= 1;
-            dst[1] <<= 1;
-            if (dst[2] & 0x80)
-                dst[1] |= 1;
-            dst[2] <<= 1;
+            t = _crc[0] >> 7;
+            _crc[0] <<= 1;
+            if (_crc[1] & 0x80)
+                _crc[0] |= 1;
+            _crc[1] <<= 1;
+            if (_crc[2] & 0x80)
+                _crc[1] |= 1;
+            _crc[2] <<= 1;
 
             if (t != (d & 1))
             {
 
-                dst[2] ^= 0x5B;
-                dst[1] ^= 0x06;
+                _crc[2] ^= 0x5B;
+                _crc[1] ^= 0x06;
             }
         }
     }
-    dst[0] = bitswap(dst[0]);
-    dst[1] = bitswap(dst[1]);
-    dst[2] = bitswap(dst[2]);
+    _crc[0] = bitswap(_crc[0]);
+    _crc[1] = bitswap(_crc[1]);
+    _crc[2] = bitswap(_crc[2]);
 
-    if (memcmp(dst, &data[getPDUDataLength() - 1], 3) == 0)
+    if (memcmp(_crc, crc, BLE_CRC_LEN) == 0)
         return true;
     return false;
 }
@@ -145,19 +134,20 @@ void BLEPacket::getPDUTypeName(char *dst, int max)
 
 uint8_t BLEPacket::getPDUDataLength()
 {
-    return pduHeader[1] + 3;
+    return pduHeader[1] + BLE_CRC_LEN;
 }
 
 void BLEPacket::setPDUData(boost::circular_buffer<uint8_t> &rbuff)
 {
-    uint8_t tmpBuffer[260];
-    uint8_t outBuffer[260];
+    uint8_t tmpBuffer[BLE_PDU_HEAD_LEN + BLE_MAX_PDU_LEN + BLE_CRC_LEN];
+    uint8_t outBuffer[BLE_PDU_HEAD_LEN + BLE_MAX_PDU_LEN + BLE_CRC_LEN];
     uint8_t len = getPDUDataLength();
     rbuff.linearize();
-    memccpy(tmpBuffer, pduHeaderRaw, 2, 260);
-    memccpy(&tmpBuffer[2], rbuff.array_one().first, len, 258);
-    dewhitening(tmpBuffer, len + 2, outBuffer);
-    memccpy(pduData, &outBuffer[2], len, len);
+    memccpy(tmpBuffer, pduHeaderRaw, BLE_PDU_HEAD_LEN, BLE_PDU_HEAD_LEN);
+    memccpy(&tmpBuffer[BLE_PDU_HEAD_LEN], rbuff.array_one().first, len, BLE_MAX_PDU_LEN + BLE_CRC_LEN);
+    dewhitening(tmpBuffer, len + BLE_PDU_HEAD_LEN, outBuffer);
+    memccpy(pduData, &outBuffer[BLE_PDU_HEAD_LEN], len, len);
+    valid = checkCRC();
 }
 
 bool BLEPacket::isPDUValid()
@@ -172,7 +162,7 @@ bool BLEPacket::isPDUValid()
 
 bool BLEPacket::isCRCValid()
 {
-    return crc();
+    return valid;
 }
 
 } /* namespace ble */

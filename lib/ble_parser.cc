@@ -25,16 +25,6 @@ static void printhex(uint8_t *ptr, int count)
       printf("\n");
 }
 
-uint8_t BLEParser::preamble = 0xAA;
-
-// For following values see: BT5.0 Core Spec, page 2562
-size_t BLEParser::accessAddrLen = 4;
-size_t BLEParser::pduHeadLen = 2;
-size_t BLEParser::crcLen = 3;
-
-// Access Address for advertising channel packets; See: BT5.0 Core Spec, page 2563
-uint32_t BLEParser::accessAddr = 0x8e89bed6;
-
 BLEParser::BLEParser(int channel) : d_state(IDLE), d_cbuffer(32 * 1024), d_packets(), d_channel(channel)
 {
 }
@@ -57,7 +47,7 @@ void BLEParser::work()
                   switch (d_state)
                   {
                   case IDLE:
-                        if (d_cbuffer.front() == preamble)
+                        if (d_cbuffer.front() == BLE_PREAMBLE)
                         {
                               d_state = ADDR;
                         }
@@ -67,13 +57,13 @@ void BLEParser::work()
                         break;
 
                   case ADDR:
-                        if (d_cbuffer.size() >= accessAddrLen)
+                        if (d_cbuffer.size() >= BLE_ACCESS_ADDR_LEN)
                         {
                               d_cbuffer.linearize();
                               uint8_t *buffArray = d_cbuffer.array_one().first;
 
                               uint32_t accessAddress = *((uint32_t *)buffArray);
-                              if (accessAddress == accessAddr)
+                              if (accessAddress == BLE_ACCESS_ADDRESS)
                               {
                                     d_cbuffer.pop_front();
                                     d_cbuffer.pop_front();
@@ -91,17 +81,15 @@ void BLEParser::work()
                               loop = false;
                         break;
                   case PDU:
-                        if (d_cbuffer.size() >= pduHeadLen)
+                        if (d_cbuffer.size() >= BLE_PDU_HEAD_LEN)
                         {
                               d_cbuffer.linearize();
                               uint8_t *buffArray = d_cbuffer.array_one().first;
 
-                              BLEPacket *current = new BLEPacket(buffArray);
+                              BLEPacket *current = new BLEPacket(buffArray, d_channel);
                               char buff[32];
                               current->getPDUTypeName(buff, 32);
-                              printf("\npduHead: %02x %02x", buffArray[0], buffArray[1]);
-                              printf("\nPDUType: %s", buff);
-                              printf("\nChannel: %d", d_channel);
+                              printf("Detected PDU: %s on channel %d\n", buff, d_channel);
 
                               if (current->isPDUValid())
                               {
@@ -112,7 +100,7 @@ void BLEParser::work()
                               }
                               else
                               {
-                                    delete current;
+                                   // delete current;
                                     d_cbuffer.pop_front();
                                     d_state = IDLE;
                               }
@@ -120,103 +108,37 @@ void BLEParser::work()
                         else
                               loop = false;
                         break;
+                  case DATA:
+                        if (d_cbuffer.size() >= d_packets.back()->getPDUDataLength())
+                        {
+                              d_packets.back()->setPDUData(d_cbuffer);
+                              for (int i = 0; i < d_packets.back()->getPDUDataLength(); i++)
+                                    d_cbuffer.pop_front();
+                              d_state = FINISH;
+                        }
+                        else
+                              loop = false;
+                        break;
+
+                  case FINISH:
+                        if (d_packets.back()->isCRCValid())
+                        {
+                              printf("\nPacket #%ld\n", d_packets.size());
+                              printf("\nPDU Data length: %d\n", d_packets.back()->getPDUDataLength());
+                              printf("PDU Header: \n");
+                              printhex(d_packets.back()->pduHeader, 2);
+                              printf("PDU Data: \n");
+                              printhex(d_packets.back()->pduData, d_packets.back()->getPDUDataLength());
+                        }
+                        else
+                        {
+                              //delete d_packets.back();
+                              d_packets.pop_back();
+                        }
+                        d_state = IDLE;
+                        break;
                   }
             }
-            // for (int i = 0; i < d_cbuffer.size(); i++)
-            // {
-            //       switch (d_state)
-            //       {
-            //       case IDLE:
-            //             if (d_cbuffer.front() == preamble)
-            //             {
-            //                   d_state = ADDR;
-            //             }
-            //             d_cbuffer.pop_front();
-            //             break;
-            //       case ADDR:
-            //             if (d_cbuffer.size() > (accessAddrLen + pduHeadLen))
-            //             {
-            //                   uint32_t accessAddress = d_cbuffer.at(0) << 24;
-            //                   accessAddress |= d_cbuffer.at(1) << 16;
-            //                   accessAddress |= d_cbuffer.at(2) << 8;
-            //                   accessAddress |= d_cbuffer.at(3);
-            //                   if (accessAddress == accessAddr)
-            //                   {
-            //                         d_cbuffer.pop_front();
-            //                         d_cbuffer.pop_front();
-            //                         d_cbuffer.pop_front();
-            //                         d_cbuffer.pop_front();
-            //                         i += accessAddrLen - 1;
-            //                         d_state = PDU;
-            //                   }
-            //                   else
-            //                   {
-            //                         d_cbuffer.pop_front();
-            //                         d_state = IDLE;
-            //                   }
-            //             }
-            //             break;
-            //       case PDU:
-            //       {
-            //             if (d_cbuffer.size() < pduHeadLen)
-            //                   return;
-
-            //             uint8_t pduHead[2];
-            //             pduHead[0] = d_cbuffer.at(1);
-            //             pduHead[1] = d_cbuffer.at(0);
-
-            //             BLEPacket *current = new BLEPacket(pduHead);
-            //             char buff[32];
-            //             current->getPDUTypeName(buff, 32);
-            //             printf("\npduHead: %02x %02x", pduHead[0], pduHead[1]);
-
-            //             if (current->isPDUValid())
-            //             {
-            //                   d_state = DATA;
-            //                   i--;
-            //                   d_packets.push_back(current);
-            //             }
-            //             else
-            //             {
-            //                   delete current;
-            //                   d_cbuffer.pop_front();
-            //                   d_state = IDLE;
-            //             }
-            //       }
-            //       break;
-            //       case DATA:
-            //       {
-            //             BLEPacket *current = d_packets.back();
-            //             if (!current->setPDUData(d_cbuffer))
-            //                   return;
-            //             d_state = RESULT;
-            //       }
-            //       break;
-            //       case CRC:
-            //             // crc = packetData[dataLen - 1] << 16;
-            //             // crc |= packetData[dataLen - 2] << 8;
-            //             // crc |= packetData[dataLen - 3];
-            //             // printf("CRC: 0x%06x\n", crc);
-            //             // d_state = RESULT;
-            //             break;
-            //       case RESULT:
-            //             BLEPacket *current = d_packets.back();
-            //             if (current->getPDUType() == ADV_NONCONN_IND && current->getPDUDataLength() > 0)
-            //             {
-            //                   printf("\nPacket count: %ld", d_packets.size());
-            //                   // dewhitening(39, packetData, dataLen, buf);
-            //                   // uint8_t *macAddr = &packetData[blePDUHeadLen];
-            //                   // printf("\nMAC: ");
-            //                   // printhex(packetData, 6);
-            //                   // printf("\nMAC[Dewhitened]: ");
-            //                   // printhex(buf, 6);
-            //             }
-            //             else
-            //                   d_packets.pop_back();
-            //             d_state = IDLE;
-            //             break;
-            //       }
-            // }
       }
 }
 
@@ -231,6 +153,8 @@ void BLEParser::writeBuffer(const uint8_t *src, size_t length)
 void BLEParser::setChannel(int channel)
 {
       d_channel = channel;
+      d_state = IDLE;
+      d_cbuffer.clear();
 }
 
 } /* namespace ble */

@@ -3,6 +3,8 @@
 #ifndef INCLUDED_BLE_BLEPACKET_H
 #define INCLUDED_BLE_BLEPACKET_H
 
+#include "ble_constants.h"
+
 #include <stdint.h>
 #include <boost/circular_buffer.hpp>
 
@@ -25,22 +27,22 @@ enum PDUType
 class BLEPacket
 {
 private:
-  uint8_t data[260];
-  uint8_t pduHeaderRaw[2];
-  uint32_t crc24;
+  uint8_t data[BLE_PDU_HEAD_LEN + BLE_MAX_PDU_LEN + BLE_CRC_LEN];
+  uint8_t pduHeaderRaw[BLE_PDU_HEAD_LEN];
   uint8_t channel;
+  bool valid;
 
   uint8_t bitswap(uint8_t b);
   void dewhitening(uint8_t *data, int length, uint8_t *out);
-  bool crc();
+  bool checkCRC();
 
 public:
-  BLEPacket(uint8_t *pduHeader, int chan);
-  ~BLEPacket();
-
   uint8_t *pduHeader;
   uint8_t *pduData;
+  uint8_t *crc;
 
+  BLEPacket(uint8_t *pduHeader, int chan);
+  ~BLEPacket();
 
   PDUType getPDUType();
   void getPDUTypeName(char *dst, int max);

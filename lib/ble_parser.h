@@ -4,6 +4,7 @@
 #define INCLUDED_BLE_BLEPARSER_H
 
 #include "ble_packet.h"
+#include "ble_constants.h"
 
 #include <stdint.h>
 #include <list>
@@ -17,13 +18,6 @@ namespace ble
 class BLEParser
 {
 private:
-  static size_t accessAddrLen;
-  static size_t pduHeadLen;
-  static size_t crcLen;
-
-  static uint8_t preamble;
-  static uint32_t accessAddr;
-
   int d_channel;
   std::list<BLEPacket *> d_packets;
   boost::circular_buffer<uint8_t> d_cbuffer;
@@ -34,8 +28,7 @@ private:
     ADDR,
     PDU,
     DATA,
-    CRC,
-    RESULT
+    FINISH
   } d_state;
 
 public:
